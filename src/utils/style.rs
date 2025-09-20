@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use image::{codecs::png::PngEncoder, guess_format, load_from_memory_with_format, ImageBuffer, RgbaImage};
 use usvg::{Opacity, Paint};
 use wasm_bindgen::prelude::*;
@@ -128,7 +126,7 @@ pub struct LinearGradient {
     /// The end point of the gradient.
     pub p2: Point2D,
     /// The color stops of the gradient.
-    color_stops: Rc<Vec<ColorStop>>,
+    color_stops: Vec<ColorStop>,
 }
 
 impl Default for LinearGradient {
@@ -136,7 +134,7 @@ impl Default for LinearGradient {
         LinearGradient {
             p1: Point2D::default(),
             p2: Point2D::default(),
-            color_stops: Rc::new(vec![]),
+            color_stops: vec![],
         }
     }
 }
@@ -156,7 +154,7 @@ impl LinearGradient {
         LinearGradient {
             p1,
             p2,
-            color_stops: Rc::new(color_stops),
+            color_stops: color_stops.to_vec(),
         }
     }
     /// Returns the default LinearGradient, which is a gradient from the start to the end the same color.
@@ -179,7 +177,7 @@ impl LinearGradient {
         LinearGradient {
             p1,
             p2,
-            color_stops: Rc::new(color_stops),
+            color_stops: color_stops.to_vec(),
         }
     }
     /// Returns the default LinearGradient, which is a gradient from the origin to the origin with no ColorStops.
@@ -199,7 +197,7 @@ impl LinearGradient {
         #[wasm_bindgen(param_description = "The color stops of the gradient.")]
         color_stops: Vec<ColorStop>
     ) {
-        self.color_stops = Rc::new(color_stops);
+        self.color_stops = color_stops.to_vec();
     }
     /// Gets the Color at a given offset along the gradient.
     #[wasm_bindgen(return_description = "The color at the given offset.")]
@@ -208,8 +206,8 @@ impl LinearGradient {
         #[wasm_bindgen(param_description = "The offset to get the color at.")]
         position: f32
     ) -> Color {
-        let mut the_stops = Rc::clone(&self.color_stops);
-        let stops = Rc::make_mut(&mut the_stops);
+        let mut the_stops = self.color_stops.clone();
+        let stops = &mut the_stops;
         stops.sort_by(|a, b| a.position.partial_cmp(&b.position).unwrap());
         for i in 0..stops.len() {
             if position < stops[i].position {
@@ -268,7 +266,7 @@ impl LinearGradient {
         LinearGradient {
             p1,
             p2,
-            color_stops: Rc::new(color_stops),
+            color_stops: color_stops.to_vec(),
         }
     }
 }
@@ -284,7 +282,7 @@ pub struct RadialGradient {
     /// The radius of the gradient.
     pub r: f32,
     /// The color stops of the gradient.
-    color_stops: Rc<Vec<ColorStop>>,
+    color_stops: Vec<ColorStop>,
 }
 
 impl Default for RadialGradient {
@@ -293,7 +291,7 @@ impl Default for RadialGradient {
             f: Point2D::default(),
             c: Point2D::default(),
             r: 0.0,
-            color_stops: Rc::new(vec![]),
+            color_stops: vec![],
         }
     }
 }
@@ -316,7 +314,7 @@ impl RadialGradient {
             f,
             c,
             r,
-            color_stops: Rc::new(color_stops),
+            color_stops: color_stops.to_vec(),
         }
     }
     /// Returns the default RadialGradient, which is a gradient from the focal point to the center with the same color.
@@ -336,7 +334,7 @@ impl RadialGradient {
         #[wasm_bindgen(param_description = "The color stops of the gradient.")]
         color_stops: Vec<ColorStop>
     ) {
-        self.color_stops = Rc::new(color_stops);
+        self.color_stops = color_stops.to_vec();
     }
     /// Gets the Color at a given offset along the gradient.
     #[wasm_bindgen(return_description = "The color at the given offset.")]
@@ -345,8 +343,8 @@ impl RadialGradient {
         #[wasm_bindgen(param_description = "The offset to get the color at.")]
         position: f32
     ) -> Color {
-        let mut stops = Rc::clone(&self.color_stops);
-        let stops = Rc::make_mut(&mut stops);
+        let mut stops = self.color_stops.clone();
+        let stops = &mut stops;
         stops.sort_by(|a, b| a.position.partial_cmp(&b.position).unwrap());
         for i in 0..stops.len() {
             if position < stops[i].position {
@@ -408,7 +406,7 @@ impl RadialGradient {
             f,
             c,
             r,
-            color_stops: Rc::new(color_stops),
+            color_stops: color_stops.to_vec(),
         }
     }
     /// Linearly interpolates between two RadialGradients given a progress value.
@@ -449,7 +447,7 @@ impl RadialGradient {
             f,
             c,
             r,
-            color_stops: Rc::new(color_stops),
+            color_stops: color_stops.to_vec(),
         }
     }
 }
@@ -834,12 +832,12 @@ impl Style {
             color.alpha = color.alpha * (1.0 - amount);
         }
         if let Some(linear_gradient) = &mut linear_gradient {
-            for stop in Rc::make_mut(&mut linear_gradient.color_stops) {
+            for stop in &mut linear_gradient.color_stops {
                 stop.color.alpha = stop.color.alpha * (1.0 - amount);
             }
         }
         if let Some(radial_gradient) = &mut radial_gradient {
-            for stop in Rc::make_mut(&mut radial_gradient.color_stops) {
+            for stop in &mut radial_gradient.color_stops {
                 stop.color.alpha = stop.color.alpha * (1.0 - amount);
             }
         }

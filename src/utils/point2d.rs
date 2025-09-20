@@ -1,4 +1,4 @@
-use std::{ops::{Add, AddAssign, Index, Mul, MulAssign, Range, RangeFrom, RangeFull, RangeTo, Sub, SubAssign}, rc::Rc};
+use std::ops::{Add, AddAssign, Index, Mul, MulAssign, Range, RangeFrom, RangeFull, RangeTo, Sub, SubAssign};
 
 use usvg::tiny_skia_path;
 use wasm_bindgen::prelude::*;
@@ -329,7 +329,7 @@ impl MulAssign<f32> for Point2D {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Path2D {
     /// The points of the path.
-    points: Rc<Vec<Point2D>>
+    points: Vec<Point2D>
 }
 
 #[wasm_bindgen]
@@ -340,7 +340,7 @@ impl Path2D {
         #[wasm_bindgen(param_description = "The points of the path.")]
         points: Vec<Point2D>
     ) -> Path2D {
-        Path2D { points: Rc::new(points) }
+        Path2D { points }
     }
 
     /// Creates a new Path2D given a AnchorsAndHandles object.
@@ -356,7 +356,7 @@ impl Path2D {
             points.push(anchors_and_handles.second_controls()[i]);
             points.push(anchors_and_handles.end_anchors()[i]);
         }
-        Path2D { points: Rc::new(points) }
+        Path2D { points: points.to_vec() }
     }
 
     /// Clones the Path2D.
@@ -374,15 +374,15 @@ impl Path2D {
     ) -> Path2D {
         let mut points = Vec::with_capacity(self.points.len() * count);
         for _ in 0..count {
-            points.extend(Rc::clone(&self.points).iter());
+            points.extend(self.points.iter());
         }
-        Path2D { points: Rc::new(points) }
+        Path2D { points }
     }
 
     /// Returns the Point2Ds of the Path2D.
     #[wasm_bindgen(getter, return_description = "The points of the path.")]
     pub fn points(&self) -> Vec<Point2D> {
-        Rc::clone(&self.points).to_vec()
+        self.points.to_vec()
     }
 
     /// Sets the Point2Ds of the Path2D.
@@ -392,7 +392,7 @@ impl Path2D {
         #[wasm_bindgen(param_description = "The points of the path.")]
         points: Vec<Point2D>
     ) {
-        self.points = Rc::new(points);
+        self.points = points.to_vec();
     }
 
     /// Returns whether the Path2D is empty.
@@ -444,7 +444,7 @@ impl Path2D {
         #[wasm_bindgen(param_description = "The new point.")]
         point: Point2D
     ) {
-        Rc::make_mut(&mut self.points)[index] = point;
+        (&mut self.points)[index] = point;
     }
 
     /// Appends a Point2D to the Path2D.
@@ -453,13 +453,13 @@ impl Path2D {
         #[wasm_bindgen(param_description = "The point to append.")]
         point: Point2D
     ) {
-        Rc::make_mut(&mut self.points).push(point);
+        (&mut self.points).push(point);
     }
 
     /// Removes the last Point2D from the Path2D.
     #[wasm_bindgen(return_description = "The last point of the path.")]
     pub fn pop(&mut self) -> Option<Point2D> {
-        Rc::make_mut(&mut self.points).pop()
+        (&mut self.points).pop()
     }
 
     /// Inserts a Point2D at a given index.
@@ -470,7 +470,7 @@ impl Path2D {
         #[wasm_bindgen(param_description = "The point to insert.")]
         point: Point2D
     ) {
-        Rc::make_mut(&mut self.points).insert(index, point);
+        (&mut self.points).insert(index, point);
     }
 
     /// Removes a Point2D at a given index.
@@ -480,12 +480,12 @@ impl Path2D {
         #[wasm_bindgen(param_description = "The index of the point to remove.")]
         index: usize
     ) -> Point2D {
-        Rc::make_mut(&mut self.points).remove(index)
+        (&mut self.points).remove(index)
     }
 
     /// Removes all Point2Ds from the Path2D.
     pub fn clear(&mut self) {
-        Rc::make_mut(&mut self.points).clear();
+        (&mut self.points).clear();
     }
 
     /// Returns a new Path2D representing a bezier curve portion of the Path2D.
@@ -566,18 +566,18 @@ impl Path2D {
             return Path2D::fill(self[0], 1);
         }
         let n = self.len();
-        let mut points = Rc::clone(&self.points);
+        let mut points = self.points.clone();
         if a != 0.0 {
             for i in 1..n {
                 let new_points = points[1..n - i + 1].iter().zip(points[0..n - i].iter()).map(|(a, b)| *a + *a * (*a - *b)).collect::<Vec<Point2D>>();
-                Rc::make_mut(&mut points).splice(0..n - i, new_points);
+                (&mut points).splice(0..n - i, new_points);
             }
         }
         if b != 1.0 {
             let mu = (1.0 - b) / (1.0 - a);
             for i in 1..n {
                 let new_points = points[i - 1..n - 1].iter().zip(points[i..n].iter()).map(|(a, b)| *a + mu * (*a - *b)).collect::<Vec<Point2D>>();
-                Rc::make_mut(&mut points).splice(i..n, new_points);
+                (&mut points).splice(i..n, new_points);
             }
         }
         Path2D { points }
@@ -592,13 +592,13 @@ impl Path2D {
         count: usize
     ) -> Path2D {
         Path2D {
-            points: Rc::new(vec![point; count])
+            points: vec![point; count]
         }
     }
 
     /// Reverse the Path2D.
     pub fn reverse(&mut self) {
-        Rc::make_mut(&mut self.points).reverse();
+        (&mut self.points).reverse();
     }
 
     /// Sets a slice of the Path2D.
@@ -611,8 +611,8 @@ impl Path2D {
         #[wasm_bindgen(param_description = "The new path.")]
         path: Path2D
     ) {
-        let points = Rc::clone(&path.points);
-        Rc::make_mut(&mut self.points).splice(start..end, points.to_vec());
+        let points = path.points.clone();
+        (&mut self.points).splice(start..end, points.to_vec());
     }
 
     /// Returns a slice of the Path2D
@@ -625,7 +625,7 @@ impl Path2D {
         end: usize
     ) -> Path2D {
         Path2D {
-            points: Rc::new(self.points[start..end].to_vec())
+            points: self.points[start..end].to_vec()
         }
     }
 
@@ -650,11 +650,11 @@ impl Path2D {
             return;
         }
         if self.points.len() % 4 == 0 {
-            Rc::make_mut(&mut self.points).push(cubic_bezier.start_anchor());
+            (&mut self.points).push(cubic_bezier.start_anchor());
         }
-        Rc::make_mut(&mut self.points).push(cubic_bezier.first_control());
-        Rc::make_mut(&mut self.points).push(cubic_bezier.second_control());
-        Rc::make_mut(&mut self.points).push(cubic_bezier.end_anchor());
+        (&mut self.points).push(cubic_bezier.first_control());
+        (&mut self.points).push(cubic_bezier.second_control());
+        (&mut self.points).push(cubic_bezier.end_anchor());
     }
 
     /// Returns an approximation of the length of the path, based on sampling points along each cubic bezier curve in the path and an optional extra length to add to each approximation.
@@ -722,7 +722,7 @@ impl Path2D {
         matrix: &TransformationMatrix
     ) -> Path2D {
         Path2D {
-            points: Rc::new(self.points.iter().map(|point| *matrix * *point).collect())
+            points: self.points.iter().map(|point| *matrix * *point).collect()
         }
     }
 }
@@ -732,7 +732,7 @@ impl Add<Point2D> for Path2D {
 
     fn add(self, point: Point2D) -> Path2D {
         Path2D {
-            points: Rc::new(self.points.to_vec().into_iter().map(|p| p + point).collect())
+            points: self.points.to_vec().into_iter().map(|p| p + point).collect()
         }
     }
 }
@@ -742,14 +742,14 @@ impl Add<Path2D> for Point2D {
 
     fn add(self, path: Path2D) -> Path2D {
         Path2D {
-            points: Rc::new(path.points.to_vec().into_iter().map(|p| self + p).collect())
+            points: path.points.to_vec().into_iter().map(|p| self + p).collect()
         }
     }
 }
 
 impl AddAssign<Point2D> for Path2D {
     fn add_assign(&mut self, point: Point2D) {
-        Rc::make_mut(&mut self.points).iter_mut().for_each(|p| *p += point);
+        (&mut self.points).iter_mut().for_each(|p| *p += point);
     }
 }
 
@@ -758,14 +758,14 @@ impl Add<Path2D> for Path2D {
 
     fn add(self, other: Path2D) -> Path2D {
         Path2D {
-            points: Rc::new(self.points.iter().zip(other.points.iter()).map(|(a, b)| *a + *b).collect())
+            points: self.points.iter().zip(other.points.iter()).map(|(a, b)| *a + *b).collect()
         }
     }
 }
 
 impl AddAssign<Path2D> for Path2D {
     fn add_assign(&mut self, other: Path2D) {
-        Rc::make_mut(&mut self.points).iter_mut().zip(other.points.iter()).for_each(|(a, b)| *a += *b);
+        (&mut self.points).iter_mut().zip(other.points.iter()).for_each(|(a, b)| *a += *b);
     }
 }
 
@@ -774,7 +774,7 @@ impl Sub<Point2D> for Path2D {
 
     fn sub(self, point: Point2D) -> Path2D {
         Path2D {
-            points: Rc::new(self.points.to_vec().into_iter().map(|p| p - point).collect())
+            points: self.points.to_vec().into_iter().map(|p| p - point).collect()
         }
     }
 }
@@ -784,14 +784,14 @@ impl Sub<Path2D> for Point2D {
 
     fn sub(self, path: Path2D) -> Path2D {
         Path2D {
-            points: Rc::new(path.points.to_vec().into_iter().map(|p| self - p).collect())
+            points: path.points.to_vec().into_iter().map(|p| self - p).collect()
         }
     }
 }
 
 impl SubAssign<Point2D> for Path2D {
     fn sub_assign(&mut self, point: Point2D) {
-        Rc::make_mut(&mut self.points).iter_mut().for_each(|p| *p -= point);
+        (&mut self.points).iter_mut().for_each(|p| *p -= point);
     }
 }
 
@@ -800,14 +800,14 @@ impl Sub<Path2D> for Path2D {
 
     fn sub(self, other: Path2D) -> Path2D {
         Path2D {
-            points: Rc::new(self.points.iter().zip(other.points.iter()).map(|(a, b)| *a - *b).collect())
+            points: self.points.iter().zip(other.points.iter()).map(|(a, b)| *a - *b).collect()
         }
     }
 }
 
 impl SubAssign<Path2D> for Path2D {
     fn sub_assign(&mut self, other: Path2D) {
-        Rc::make_mut(&mut self.points).iter_mut().zip(other.points.iter()).for_each(|(a, b)| *a -= *b);
+        (&mut self.points).iter_mut().zip(other.points.iter()).for_each(|(a, b)| *a -= *b);
     }
 }
 
@@ -816,7 +816,7 @@ impl Mul<f32> for Path2D {
 
     fn mul(self, scalar: f32) -> Path2D {
         Path2D {
-            points: Rc::new(self.points.to_vec().into_iter().map(|p| p * scalar).collect())
+            points: self.points.to_vec().into_iter().map(|p| p * scalar).collect()
         }
     }
 }
@@ -826,7 +826,7 @@ impl Mul<Path2D> for f32 {
 
     fn mul(self, path: Path2D) -> Path2D {
         Path2D {
-            points: Rc::new(path.points.to_vec().into_iter().map(|p| self * p).collect())
+            points: path.points.to_vec().into_iter().map(|p| self * p).collect()
         }
     }
 }
@@ -836,7 +836,7 @@ impl Mul<Point2D> for Path2D {
 
     fn mul(self, point: Point2D) -> Path2D {
         Path2D {
-            points: Rc::new(self.points.to_vec().into_iter().map(|p| p * point).collect())
+            points: self.points.to_vec().into_iter().map(|p| p * point).collect()
         }
     }
 }
@@ -846,20 +846,20 @@ impl Mul<Path2D> for Point2D {
 
     fn mul(self, path: Path2D) -> Path2D {
         Path2D {
-            points: Rc::new(path.points.to_vec().into_iter().map(|p| self * p).collect())
+            points: path.points.to_vec().into_iter().map(|p| self * p).collect()
         }
     }
 }
 
 impl MulAssign<f32> for Path2D {
     fn mul_assign(&mut self, scalar: f32) {
-        Rc::make_mut(&mut self.points).iter_mut().for_each(|p| *p *= scalar);
+        (&mut self.points).iter_mut().for_each(|p| *p *= scalar);
     }
 }
 
 impl MulAssign<Point2D> for Path2D {
     fn mul_assign(&mut self, point: Point2D) {
-        Rc::make_mut(&mut self.points).iter_mut().for_each(|p| *p *= point);
+        (&mut self.points).iter_mut().for_each(|p| *p *= point);
     }
 }
 
@@ -914,12 +914,12 @@ impl IntoIterator for Path2D {
 
 impl Extend<Point2D> for Path2D {
     fn extend<T: IntoIterator<Item = Point2D>>(&mut self, iter: T) {
-        Rc::make_mut(&mut self.points).extend(iter);
+        (&mut self.points).extend(iter);
     }
 }
 
 impl Default for Path2D {
     fn default() -> Self {
-        Path2D { points: Rc::new(Vec::new()) }
+        Path2D { points: Vec::new() }
     }
 }

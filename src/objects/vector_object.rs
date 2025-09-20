@@ -16,25 +16,25 @@ pub struct VectorObject {
     /// The fill style of the vector object.
     fill: Style,
     /// The fill rule of the vector object.
-    fill_rule: Rc<String>,
+    fill_rule: String,
     /// The stroke style of the vector object.
     stroke: Style,
     /// The stroke width of the vector object.
     stroke_width: f32,
     /// The stroke line cap of the vector object.
-    stroke_line_cap: Rc<String>,
+    stroke_line_cap: String,
     /// The stroke line join of the vector object.
-    stroke_line_join: Rc<String>,
+    stroke_line_join: String,
     /// The stroke miter limit of the vector object.
     stroke_miter_limit: f32,
     /// The stroke dash offset of the vector object.
     stroke_dash_offset: f32,
     /// The stroke dash array of the vector object.
-    stroke_dash_array: Rc<Vec<f32>>,
+    stroke_dash_array: Vec<f32>,
     /// The children of the vector object.
     children: Vec<VectorObject>,
     /// Name of the vector object.
-    name: Option<Rc<String>>,
+    name: Option<String>,
     /// Transform matrix of the vector object.
     transform: TransformationMatrix,
 }
@@ -168,8 +168,8 @@ impl VectorOperation for ScaleToWidth {
             factor_x
         };
         let scale = Scale {
-            factor_x: factor_x,
-            factor_y: factor_y,
+            factor_x,
+            factor_y,
             about_point: self.about_point,
             recursive: self.recursive,
         };
@@ -202,8 +202,8 @@ impl VectorOperation for ScaleToHeight {
         };
         let factor_y = self.height / height;
         let scale = Scale {
-            factor_x: factor_x,
-            factor_y: factor_y,
+            factor_x,
+            factor_y,
             about_point: self.about_point,
             recursive: self.recursive,
         };
@@ -295,12 +295,12 @@ impl VectorOperation for RemoveChildByIndex {
 }
 
 pub struct RemoveChildByName {
-    pub name: Rc<String>,
+    pub name: String,
 }
 
 impl VectorOperation for RemoveChildByName {
     fn apply(&self, object: &mut VectorObject) {
-        object.children.retain(|child| child.name != Some(Rc::clone(&self.name)));
+        object.children.retain(|child| child.name != Some(self.name.clone()));
     }
 }
 
@@ -360,7 +360,7 @@ impl VectorOperation for BecomePartial {
             return;
         }
         let max_length = max_length.unwrap();
-        object.stroke_dash_array = Rc::new(vec![max_length * (self.end - self.start), max_length]);
+        object.stroke_dash_array = vec![max_length * (self.end - self.start), max_length];
         object.stroke_dash_offset = -max_length * self.start;
     }
 }
@@ -583,7 +583,7 @@ pub struct SetFillRule {
 
 impl VectorOperation for SetFillRule {
     fn apply(&self, object: &mut VectorObject) {
-        object.fill_rule = Rc::clone(&self.fill_rule);
+        object.fill_rule = self.fill_rule.to_string();
         if self.recursive.unwrap_or(true) {
             for child in &mut object.children {
                 let set_fill_rule = SetFillRule {
@@ -643,7 +643,7 @@ pub struct SetStrokeLineCap {
 
 impl VectorOperation for SetStrokeLineCap {
     fn apply(&self, object: &mut VectorObject) {
-        object.stroke_line_cap = Rc::clone(&self.stroke_line_cap);
+        object.stroke_line_cap = self.stroke_line_cap.to_string();
         if self.recursive.unwrap_or(true) {
             for child in &mut object.children {
                 let set_stroke_line_cap = SetStrokeLineCap {
@@ -663,7 +663,7 @@ pub struct SetStrokeLineJoin {
 
 impl VectorOperation for SetStrokeLineJoin {
     fn apply(&self, object: &mut VectorObject) {
-        object.stroke_line_join = Rc::clone(&self.stroke_line_join);
+        object.stroke_line_join = self.stroke_line_join.to_string();
         if self.recursive.unwrap_or(true) {
             for child in &mut object.children {
                 let set_stroke_line_join = SetStrokeLineJoin {
@@ -723,7 +723,7 @@ pub struct SetStrokeDashArray {
 
 impl VectorOperation for SetStrokeDashArray {
     fn apply(&self, object: &mut VectorObject) {
-        object.stroke_dash_array = Rc::clone(&self.stroke_dash_array);
+        object.stroke_dash_array = self.stroke_dash_array.to_vec();
         if self.recursive.unwrap_or(true) {
             for child in &mut object.children {
                 let set_stroke_dash_array = SetStrokeDashArray {
@@ -753,7 +753,7 @@ pub struct SetName {
 impl VectorOperation for SetName {
     fn apply(&self, object: &mut VectorObject) {
         if let Some(name) = &self.name {
-            object.name = Some(Rc::clone(name));
+            object.name = Some(name.to_string());
         } else {
             object.name = None;
         }
@@ -1109,14 +1109,14 @@ impl Default for VectorObject {
         VectorObject {
             path: Path2D::default(),
             fill: Style::default(),
-            fill_rule: Rc::new("nonzero".to_string()),
+            fill_rule: "nonzero".to_string(),
             stroke: Style::default(),
             stroke_width: 1.0,
-            stroke_line_cap: Rc::new("butt".to_string()),
-            stroke_line_join: Rc::new("miter".to_string()),
+            stroke_line_cap: "butt".to_string(),
+            stroke_line_join: "miter".to_string(),
             stroke_miter_limit: 4.0,
             stroke_dash_offset: 0.0,
-            stroke_dash_array: Rc::new(Vec::new()),
+            stroke_dash_array: Vec::new(),
             children: Vec::new(),
             name: None,
             transform: TransformationMatrix::identity(),
@@ -1426,7 +1426,7 @@ impl VectorObjectBuilder {
         #[wasm_bindgen(param_description = "The name of the child to remove from the vector object.")]
         name: String
     ) -> VectorObjectBuilder {
-        let remove_child_by_name = Box::new(RemoveChildByName { name: Rc::new(name) });
+        let remove_child_by_name = Box::new(RemoveChildByName { name });
         self.ops.add_operation(Box::leak(remove_child_by_name));
         self
     }
@@ -2079,16 +2079,16 @@ impl VectorObject {
         VectorObject {
             path,
             fill,
-            fill_rule: Rc::new(fill_rule),
+            fill_rule: fill_rule.into(),
             stroke,
             stroke_width,
-            stroke_line_cap: Rc::new(stroke_line_cap),
-            stroke_line_join: Rc::new(stroke_line_join),
+            stroke_line_cap,
+            stroke_line_join,
             stroke_miter_limit,
             stroke_dash_offset,
-            stroke_dash_array: Rc::new(stroke_dash_array),
+            stroke_dash_array,
             children,
-            name: name.map(Rc::new),
+            name,
             transform,
         }
     }
